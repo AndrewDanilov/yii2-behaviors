@@ -9,15 +9,15 @@ use yii\base\Behavior;
 /**
  * TagBehavior class
  *
- * @property ActiveQuery $tags
- * @property ActiveQuery $tagsRef
+ * @property ActiveQuery $tag
+ * @property ActiveQuery $tagRef
  * @property array $tagIds
  */
 class TagBehavior extends Behavior
 {
-	public $referenceModelClass; // класс промежуточной таблицы
-	public $referenceModelAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ исходной модели
-	public $referenceTagModelAttribute = 'tag_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели тегов
+	public $referenceModelClass; // класс промежуточной таблицы, например, 'common\models\TagRef'
+	public $referenceModelAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ исходной модели, например, 'article_id'
+	public $referenceTagModelAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели тегов, например, 'tag_id'
 	public $tagModelClass; // класс модели тегов, например, 'common\models\Tag'
 
 	private $_tagIds;
@@ -41,7 +41,7 @@ class TagBehavior extends Behavior
 	 *
 	 * @return ActiveQuery
 	 */
-	public function getTagsRef()
+	public function getTagRef()
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
@@ -53,11 +53,11 @@ class TagBehavior extends Behavior
 	 *
 	 * @return ActiveQuery
 	 */
-	public function getTags()
+	public function getTag()
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		return $ownerModel->hasMany($this->tagModelClass, ['id' => $this->referenceTagModelAttribute])->via('tagsRef');
+		return $ownerModel->hasMany($this->tagModelClass, ['id' => $this->referenceTagModelAttribute])->via('tagRef');
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -88,7 +88,7 @@ class TagBehavior extends Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		$ownerModel->unlinkAll('tags', true);
+		$ownerModel->unlinkAll('tag', true);
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -96,7 +96,7 @@ class TagBehavior extends Behavior
 	public function getTagIds()
 	{
 		if ($this->_tagIds === null) {
-			$this->_tagIds = $this->getTags()->select('id')->column();
+			$this->_tagIds = $this->getTag()->select('id')->column();
 		}
 		return $this->_tagIds;
 	}
@@ -112,19 +112,19 @@ class TagBehavior extends Behavior
 		/* @var ActiveRecord $tagModel */
 		$tagModel = $this->tagModelClass;
 		// теги до изменения
-		$oldTagIds = $this->getTags()->select('id')->column();
+		$oldTagIds = $this->getTag()->select('id')->column();
 		// теги после изменения
 		$tagIds = $this->getTagIds();
 		// добавляем новые
 		foreach (array_filter(array_diff($tagIds, $oldTagIds)) as $tagId) {
 			if ($model = $tagModel::findOne($tagId)) {
-				$ownerModel->link('tags', $model);
+				$ownerModel->link('tag', $model);
 			}
 		}
 		// удаляем старые
 		foreach (array_filter(array_diff($oldTagIds, $tagIds)) as $tagId) {
 			if ($model = $tagModel::findOne($tagId)) {
-				$ownerModel->unlink('tags', $model, true);
+				$ownerModel->unlink('tag', $model, true);
 			}
 		}
 	}
