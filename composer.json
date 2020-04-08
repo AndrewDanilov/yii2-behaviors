@@ -1,0 +1,23 @@
+{
+    "name": "andrewdanilov/yii2-behaviors",
+    "description": "Various behaviors for AR models",
+    "type": "yii2-extension",
+    "keywords": ["yii2","extension","behaviors","date","image","lang","linked products","shop options","category tags"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "AndrewDanilov",
+            "email": "andrewdanilov@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6.0",
+        "yiisoft/yii2": "~2.0.0",
+        "andrewdanilov/yii2-helpers": "~1.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "andrewdanilov\\behaviors\\": "src/"
+        }
+    }
+}
