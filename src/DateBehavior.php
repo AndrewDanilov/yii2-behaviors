@@ -11,7 +11,7 @@ class DateBehavior extends \yii\base\Behavior
 {
 	/**
 	 * 'dateAttributes' => [
-	 *  	'created_at' => \andrewdanilov\behaviors\DateBehavior::DATETIME_FORMAT,
+	 *  	'created_at' => \andrewdanilov\behaviors\DateBehavior::DATETIME_FORMAT_AUTO, // '_AUTO' means if created_at is empty, it will be changed to current datetime
 	 *  	'updated_at' => \andrewdanilov\behaviors\DateBehavior::DATE_FORMAT,
 	 *  	'showed_at', // equal to: 'showed_at' => \andrewdanilov\behaviors\DateBehavior::DATE_FORMAT
 	 *	],
@@ -20,6 +20,8 @@ class DateBehavior extends \yii\base\Behavior
 
 	const DATE_FORMAT = 1;
 	const DATETIME_FORMAT = 2;
+	const DATE_FORMAT_AUTO = 10;
+	const DATETIME_FORMAT_AUTO = 20;
 
 	/**
 	 * Events list
@@ -49,7 +51,8 @@ class DateBehavior extends \yii\base\Behavior
 				} else {
 					$format = self::DATE_FORMAT;
 				}
-				$this->owner->{$attribute} = $this->getDisplayDate($attribute, $format == self::DATETIME_FORMAT);
+				$use_time = ($format == self::DATETIME_FORMAT || $format == self::DATETIME_FORMAT_AUTO);
+				$this->owner->{$attribute} = $this->getDisplayDate($attribute, $use_time);
 			}
 		}
 	}
@@ -67,7 +70,9 @@ class DateBehavior extends \yii\base\Behavior
 				} else {
 					$format = self::DATE_FORMAT;
 				}
-				$this->owner->{$attribute} = $this->getISODate($attribute, $format == self::DATETIME_FORMAT);
+				$use_time = ($format == self::DATETIME_FORMAT || $format == self::DATETIME_FORMAT_AUTO);
+				$default = ($format == self::DATE_FORMAT_AUTO || $format == self::DATETIME_FORMAT_AUTO);
+				$this->owner->{$attribute} = $this->getISODate($attribute, $use_time, $default);
 			}
 		}
 	}
@@ -79,15 +84,20 @@ class DateBehavior extends \yii\base\Behavior
 	 *
 	 * @param $attribute
 	 * @param bool $use_time
+	 * @param bool $default
 	 * @return false|null|string
 	 */
-	public function getISODate($attribute, $use_time=false)
+	public function getISODate($attribute, $use_time=false, $default=false)
 	{
 		$date_format = 'Y-m-d';
 		if ($use_time) {
 			$date_format .= ' H:i:s';
 		}
-		return $this->owner->{$attribute} ? date($date_format, strtotime($this->owner->{$attribute})) : null;
+		$value = $this->owner->{$attribute};
+		if (empty($value) && $default) {
+			return date($date_format);
+		}
+		return $value ? date($date_format, strtotime($value)) : null;
 	}
 
 	/**
