@@ -9,13 +9,6 @@ use yii\db\ActiveRecord;
  */
 class DateBehavior extends \yii\base\Behavior
 {
-	/**
-	 * 'dateAttributes' => [
-	 *  	'created_at' => \andrewdanilov\behaviors\DateBehavior::DATETIME_FORMAT_AUTO, // '_AUTO' means if created_at is empty, it will be changed to current datetime
-	 *  	'updated_at' => \andrewdanilov\behaviors\DateBehavior::DATE_FORMAT,
-	 *  	'showed_at', // equal to: 'showed_at' => \andrewdanilov\behaviors\DateBehavior::DATE_FORMAT
-	 *	],
-	 */
 	public $dateAttributes = [];
 
 	const DATE_FORMAT = 1;
