@@ -73,6 +73,7 @@ $config = [
 	'components' => [
 		// ...
 		'formatter' => [
+			'defaultTimeZone' => 'Europe/Moscow',
 			'dateFormat'     => 'php:d.m.Y',
 			'datetimeFormat' => 'php:d.m.Y H:i:s',
 			'timeFormat'     => 'php:H:i:s',
@@ -80,3 +81,5 @@ $config = [
 	],
 ];
 ```
+
+If you have problems with time shifting, set `defaultTimeZone` property of formatter.
