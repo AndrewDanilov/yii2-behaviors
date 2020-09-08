@@ -69,8 +69,12 @@ class TagBehavior extends Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		$form = Yii::$app->request->post($ownerModel->formName());
-		$this->setTagIds($form['tagIds']);
+		if (Yii::$app->request->isPost) {
+			$form = Yii::$app->request->post($ownerModel->formName());
+			if (!empty($form['tagIds'])) {
+				$this->setTagIds($form['tagIds']);
+			}
+		}
 	}
 
 	/**
