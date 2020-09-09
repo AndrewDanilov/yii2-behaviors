@@ -1,5 +1,4 @@
 <?php
-
 namespace andrewdanilov\behaviors;
 
 use yii\base\Behavior;
@@ -8,7 +7,7 @@ use yii\helpers\Html;
 use yii\helpers\StringHelper;
 use yii\widgets\ActiveForm;
 use mihaildev\elfinder\InputFile;
-use sadovojav\ckeditor\CKEditor;
+use andrewdanilov\ckeditor\CKEditor;
 use andrewdanilov\helpers\CKEditorHelper;
 
 /**
