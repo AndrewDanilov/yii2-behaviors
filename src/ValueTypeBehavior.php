@@ -9,6 +9,7 @@ use yii\widgets\ActiveForm;
 use mihaildev\elfinder\InputFile;
 use andrewdanilov\ckeditor\CKEditor;
 use andrewdanilov\helpers\CKEditorHelper;
+use andrewdanilov\InputImages\InputImages;
 
 /**
  * ValueTypeBehavior
@@ -159,17 +160,9 @@ class ValueTypeBehavior extends Behavior
 					'multiple'      => false,      // возможность выбора нескольких файлов
 				])->label($label);
 			case self::VALUE_TYPE_IMAGE:
-				$field_id = $form->id . '-' . $model->formName() . '-' . preg_replace("/[\[\]]/", '-', $attribute);
-				$form->view->registerJs("$('#" . $field_id . "').on('change', function() { $(this).parents('.form-group').find('img.preview').attr('src', $(this).val()); });");
-				return $form->field($model, $attribute)->widget(InputFile::class, [
-					'language'      => 'ru',
-					'controller'    => 'elfinder', // вставляем название контроллера, по умолчанию равен elfinder
-					'filter'        => 'image',    // фильтр файлов, можно задать массив фильтров https://github.com/Studio-42/elFinder/wiki/Client-configuration-options#wiki-onlyMimes
-					'template'      => '<div>' . Html::img($model->{$valueAttribute}, ['width' => '300', 'class' => 'preview']) . '</div><div class="input-group">{input}<span class="input-group-btn">{button}</span></div>',
-					'options'       => ['class' => 'form-control', 'id' => $field_id],
-					'buttonOptions' => ['class' => 'btn btn-default'],
-					'multiple'      => false,      // возможность выбора нескольких файлов
-				])->label($label);
+				return $form->field($model, $attribute)
+					->widget(InputImages::class)
+					->label($label);
 			default:
 				return $form->field($model, $attribute)
 					->textInput(['maxlength' => true])
