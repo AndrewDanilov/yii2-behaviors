@@ -2,6 +2,7 @@
 namespace andrewdanilov\behaviors;
 
 use yii\base\Behavior;
+use yii\base\Model;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\helpers\StringHelper;
@@ -20,6 +21,7 @@ use andrewdanilov\InputImages\InputImages;
 class ValueTypeBehavior extends Behavior
 {
 	public $typeAttribute = 'type';
+	public $valueAttribute = 'value';
 
 	const VALUE_TYPE_STRING = 'string';
 	const VALUE_TYPE_INTEGER = 'integer';
@@ -28,6 +30,22 @@ class ValueTypeBehavior extends Behavior
 	const VALUE_TYPE_RICHTEXT = 'richtext';
 	const VALUE_TYPE_FILE = 'file';
 	const VALUE_TYPE_IMAGE = 'image';
+
+	/**
+	 * Events list
+	 * @return array
+	 */
+	public function events()
+	{
+		return [
+			ActiveRecord::EVENT_BEFORE_VALIDATE => 'onBeforeValidate',
+		];
+	}
+
+	public function onBeforeValidate()
+	{
+		$this->prepareValue();
+	}
 
 	/**
 	 * Список возможных типов значений
@@ -70,9 +88,12 @@ class ValueTypeBehavior extends Behavior
 	 * @param $value
 	 * @return bool|int|string
 	 */
-	public function formatValue($value) {
+	public function formatValue($value=null) {
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
+		if ($value === null) {
+			$value = $ownerModel->{$this->valueAttribute};
+		}
 		switch ($ownerModel->{$this->typeAttribute}) {
 			case self::VALUE_TYPE_BOOLEAN:
 				return (boolean)$value;
@@ -95,7 +116,7 @@ class ValueTypeBehavior extends Behavior
 	 * @param int $truncateWordsCount
 	 * @return bool|int|string
 	 */
-	public function prettifyValue($value, $truncateWordsCount=0)
+	public function prettifyValue($value=null, $truncateWordsCount=0)
 	{
 		$value = $this->formatValue($value);
 		/* @var ActiveRecord $ownerModel */
@@ -127,10 +148,9 @@ class ValueTypeBehavior extends Behavior
 	 * @param string $attribute
 	 * @param string $label
 	 * @param ActiveRecord $model
-	 * @param string $valueAttribute
 	 * @return string
 	 */
-	public function formField($form, $attribute, $label, $model=null, $valueAttribute='value')
+	public function formField($form, $attribute, $label, $model=null)
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
@@ -167,6 +187,26 @@ class ValueTypeBehavior extends Behavior
 				return $form->field($model, $attribute)
 					->textInput(['maxlength' => true])
 					->label($label);
+		}
+	}
+
+	/**
+	 * Подготавливает значение параметра в соответствии с его типом,
+	 * а также задает сценарии валидации модели
+	 */
+	public function prepareValue()
+	{
+		/* @var ActiveRecord $ownerModel */
+		$ownerModel = $this->owner;
+		if ($ownerModel->{$this->typeAttribute} == self::VALUE_TYPE_BOOLEAN) {
+			$ownerModel->{$this->valueAttribute} = (boolean)$ownerModel->{$this->valueAttribute};
+			$ownerModel->setScenario(self::VALUE_TYPE_BOOLEAN);
+		} elseif ($ownerModel->{$this->typeAttribute} == self::VALUE_TYPE_INTEGER) {
+			$ownerModel->{$this->valueAttribute} = (int)$ownerModel->{$this->valueAttribute};
+			$ownerModel->setScenario(self::VALUE_TYPE_INTEGER);
+		} else {
+			$ownerModel->{$this->valueAttribute} = (string)$ownerModel->{$this->valueAttribute};
+			$ownerModel->setScenario(Model::SCENARIO_DEFAULT);
 		}
 	}
 }
