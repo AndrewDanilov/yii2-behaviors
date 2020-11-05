@@ -15,12 +15,12 @@ use yii\base\Behavior;
  */
 class LinkedProductsBehavior extends Behavior
 {
-	public $referenceModelClass; // класс промежуточной таблицы, например, 'common\models\ShopProductRelations'
-	public $referenceModelAttribute = 'product_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ исходной модели
-	public $referenceLinkedModelAttribute = 'linked_product_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели модели прилинкованных товаров
-	public $linkedModelClass; // класс модели представляющей прилинкованные товары, например, 'common\models\ShopProduct'
+	public $productModelClass; // класс модели товаров представляющей как исходный товар, так и прилинкованные товары, например, 'common\models\ShopProduct'
+	public $referenceModelClass; // класс промежуточной таблицы, связывающей товары с товарами, например, 'common\models\ShopProductRelations'
+	public $referenceModelAttribute = 'product_id'; // атрибут промежуточной таблицы (referenceModelClass), ссылающийся на первичный ключ модели исходных товаров
+	public $referenceModelLinkedAttribute = 'linked_product_id'; // атрибут промежуточной таблицы (referenceModelClass), ссылающийся на первичный ключ модели прилинкованных товаров
+	public $referenceModelLinksAttribute = 'relation_id'; // атрибут промежуточной таблицы (referenceModelClass), ссылающийся на первичный ключ модели списка возможных связей (linksModelClass)
 	public $linksModelClass; // класс модели списка возможных связей, например, 'common\models\ShopRelation'
-	public $linksModelAttribute = 'relation_id'; // атрибут ссылающийся на первичный ключ модели списка возможных связей
 
 	private $_linkedProducts = null;
 
@@ -49,7 +49,7 @@ class LinkedProductsBehavior extends Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		return $ownerModel->hasMany($this->linkedModelClass, ['id' => $this->referenceLinkedModelAttribute])->via('productRelations');
+		return $ownerModel->hasMany($this->productModelClass, ['id' => $this->referenceModelLinkedAttribute])->via('productRelations');
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ class LinkedProductsBehavior extends Behavior
 			}
 			$productRelations = $this->getProductRelations()->with(['linkedProduct'])->all();
 			foreach ($productRelations as $productRelation) {
-				$this->_linkedProducts[$productRelation->{$this->linksModelAttribute}]['product_ids'][] = $productRelation->{$this->referenceLinkedModelAttribute};
+				$this->_linkedProducts[$productRelation->{$this->referenceModelLinksAttribute}]['product_ids'][] = $productRelation->{$this->referenceModelLinkedAttribute};
 			}
 		}
 		return $this->_linkedProducts;
@@ -147,8 +147,8 @@ class LinkedProductsBehavior extends Behavior
 		foreach ($linkedProducts as $link_id => $product_ids) {
 			foreach ($product_ids as $product_id) {
 				$model = new $referenceModel();
-				$model->{$this->referenceLinkedModelAttribute} = $product_id;
-				$model->{$this->linksModelAttribute} = $link_id;
+				$model->{$this->referenceModelLinkedAttribute} = $product_id;
+				$model->{$this->referenceModelLinksAttribute} = $link_id;
 				$ownerModel->link('productRelations', $model);
 			}
 		}
