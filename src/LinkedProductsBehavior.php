@@ -62,7 +62,9 @@ class LinkedProductsBehavior extends Behavior
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
 		$form = Yii::$app->request->post($ownerModel->formName());
-		$this->setLinkedProducts($form['linkedProducts']);
+		if (isset($form['linkedProducts'])) {
+			$this->setLinkedProducts($form['linkedProducts']);
+		}
 	}
 
 	/**
