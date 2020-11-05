@@ -15,7 +15,6 @@ use andrewdanilov\InputImages\InputImages;
 /**
  * ValueTypeBehavior
  *
- * @property array $typeList
  * @property string $typeName
  */
 class ValueTypeBehavior extends Behavior
@@ -52,7 +51,7 @@ class ValueTypeBehavior extends Behavior
 	 *
 	 * @return array
 	 */
-	public function getTypeList()
+	public static function getTypeList()
 	{
 		return [
 			self::VALUE_TYPE_STRING => 'Строка',
@@ -73,7 +72,7 @@ class ValueTypeBehavior extends Behavior
 	 */
 	public function getTypeName()
 	{
-		$types = $this->getTypeList();
+		$types = ValueTypeBehavior::getTypeList();
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
 		if (isset($types[$ownerModel->{$this->typeAttribute}])) {
