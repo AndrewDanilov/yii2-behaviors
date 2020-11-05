@@ -1,5 +1,4 @@
 <?php
-
 namespace andrewdanilov\behaviors;
 
 use Yii;
@@ -81,7 +80,9 @@ class ImagesBehavior extends Behavior
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
 		$form = Yii::$app->request->post($ownerModel->formName());
-		$this->setImages($form['images']);
+		if (isset($form['images'])) {
+			$this->setImages($form['images']);
+		}
 	}
 
 	/**
