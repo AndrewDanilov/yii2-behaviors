@@ -16,8 +16,8 @@ use yii\db\ActiveRecord;
 class ShopOptionBehavior extends \yii\base\Behavior
 {
 	public $referenceModelClass; // класс промежуточной таблицы
-	public $referenceModelAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ исходной модели
-	public $referenceOptionModelAttribute = 'option_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели опций
+	public $referenceModelAttribute = 'product_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ исходной модели
+	public $referenceModelOptionAttribute = 'option_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели опций
 	public $optionModelClass; // класс модели опций, например, 'common\models\ShopOption'
 	public $optionsFilter = []; // ID опций, доступных для исходной модели
 	public $createDefaultValues = false; // при инициализации создает по одному пустому значению для каждой опции, если опция не имеет значений
@@ -59,7 +59,7 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		return $ownerModel->hasMany($this->optionModelClass, ['id' => $this->referenceOptionModelAttribute])->via('optionsRef');
+		return $ownerModel->hasMany($this->optionModelClass, ['id' => $this->referenceModelOptionAttribute])->via('optionsRef');
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -103,17 +103,17 @@ class ShopOptionBehavior extends \yii\base\Behavior
 			// заполним данными из базы
 			$optionsRefs = $this->getOptionsRef();
 			if (!empty($this->optionsFilter)) {
-				$optionsRefs->where([$this->referenceOptionModelAttribute => $this->optionsFilter]);
+				$optionsRefs->where([$this->referenceModelOptionAttribute => $this->optionsFilter]);
 			}
 			foreach ($optionsRefs->all() as $optionRef) {
-				$this->_options[$optionRef->{$this->referenceOptionModelAttribute}]['items'][] = $optionRef;
+				$this->_options[$optionRef->{$this->referenceModelOptionAttribute}]['items'][] = $optionRef;
 			}
 			// заполним пустыми значениями, если нужно
 			if ($this->createDefaultValues) {
 				foreach ($this->_options as $id => $option) {
 					if (empty($this->_options[$id]['items'])) {
 						$o = new $this->referenceModelClass;
-						$o->{$this->referenceOptionModelAttribute} = $id;
+						$o->{$this->referenceModelOptionAttribute} = $id;
 						$this->_options[$id]['items'][] = $o;
 					}
 				}
@@ -167,7 +167,7 @@ class ShopOptionBehavior extends \yii\base\Behavior
 		foreach ($data as $option_id => $optionsRefs) {
 			foreach ($optionsRefs as $optionsRef) {
 				/* @var ActiveRecord $model */
-				$model = new $this->referenceModelClass([$this->referenceOptionModelAttribute => $option_id]);
+				$model = new $this->referenceModelClass([$this->referenceModelOptionAttribute => $option_id]);
 				$model->load($optionsRef, '');
 				$model->{$this->referenceModelAttribute} = $this->owner->$pk;
 				// перед сохранением подменим данные формы, чтобы вложенные
