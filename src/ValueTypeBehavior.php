@@ -146,31 +146,27 @@ class ValueTypeBehavior extends Behavior
 	 * @param ActiveForm $form
 	 * @param string $attribute
 	 * @param string $label
-	 * @param ActiveRecord $model
 	 * @return string
 	 */
-	public function formField($form, $attribute, $label, $model=null)
+	public function formField($form, $attribute, $label)
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		if ($model === null) {
-			$model = $ownerModel;
-		}
 		switch ($ownerModel->{$this->typeAttribute}) {
 			case self::VALUE_TYPE_RICHTEXT:
-				return $form->field($model, $attribute)->widget(CKEditor::class, [
+				return $form->field($ownerModel, $attribute)->widget(CKEditor::class, [
 					'editorOptions' => CKEditorHelper::defaultOptions(),
 				])->label($label);
 			case self::VALUE_TYPE_TEXT:
-				return $form->field($model, $attribute)
+				return $form->field($ownerModel, $attribute)
 					->textarea(['rows' => 6])
 					->label($label);
 			case self::VALUE_TYPE_BOOLEAN:
-				return $form->field($model, $attribute)
+				return $form->field($ownerModel, $attribute)
 					->dropDownList(['0' => 'Нет', '1' => 'Да'])
 					->label($label);
 			case self::VALUE_TYPE_FILE:
-				return $form->field($model, $attribute)->widget(InputFile::class, [
+				return $form->field($ownerModel, $attribute)->widget(InputFile::class, [
 					'language'      => 'ru',
 					'controller'    => 'elfinder', // вставляем название контроллера, по умолчанию равен elfinder
 					'template'      => '<div class="input-group">{input}<span class="input-group-btn">{button}</span></div>',
@@ -179,11 +175,11 @@ class ValueTypeBehavior extends Behavior
 					'multiple'      => false,      // возможность выбора нескольких файлов
 				])->label($label);
 			case self::VALUE_TYPE_IMAGE:
-				return $form->field($model, $attribute)
+				return $form->field($ownerModel, $attribute)
 					->widget(InputImages::class)
 					->label($label);
 			default:
-				return $form->field($model, $attribute)
+				return $form->field($ownerModel, $attribute)
 					->textInput(['maxlength' => true])
 					->label($label);
 		}
