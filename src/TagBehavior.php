@@ -17,7 +17,7 @@ class TagBehavior extends Behavior
 {
 	public $referenceModelClass; // класс промежуточной таблицы, например, 'common\models\TagRef'
 	public $referenceModelAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ исходной модели, например, 'article_id'
-	public $referenceTagModelAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели тегов, например, 'tag_id'
+	public $referenceModelTagAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели тегов, например, 'tag_id'
 	public $tagModelClass; // класс модели тегов, например, 'common\models\Tag'
 
 	private $_tagIds;
@@ -57,7 +57,7 @@ class TagBehavior extends Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		return $ownerModel->hasMany($this->tagModelClass, ['id' => $this->referenceTagModelAttribute])->via('tagRef');
+		return $ownerModel->hasMany($this->tagModelClass, ['id' => $this->referenceModelTagAttribute])->via('tagRef');
 	}
 
 	//////////////////////////////////////////////////////////////////
