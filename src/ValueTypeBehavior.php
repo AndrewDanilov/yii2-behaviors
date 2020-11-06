@@ -6,10 +6,12 @@ use yii\base\Model;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\helpers\StringHelper;
+use yii\helpers\ArrayHelper;
 use yii\widgets\ActiveForm;
 use mihaildev\elfinder\InputFile;
 use andrewdanilov\ckeditor\CKEditor;
 use andrewdanilov\helpers\CKEditorHelper;
+use andrewdanilov\helpers\ObjectHelper;
 use andrewdanilov\InputImages\InputImages;
 
 /**
@@ -73,12 +75,11 @@ class ValueTypeBehavior extends Behavior
 	public function getTypeName()
 	{
 		$types = ValueTypeBehavior::getTypeList();
-		/* @var ActiveRecord $ownerModel */
-		$ownerModel = $this->owner;
-		if (isset($types[$ownerModel->{$this->typeAttribute}])) {
-			return $types[$ownerModel->{$this->typeAttribute}];
+		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+		if (isset($types[$type])) {
+			return $types[$type];
 		}
-		return $ownerModel->{$this->typeAttribute};
+		return $type;
 	}
 
 	/**
@@ -88,12 +89,11 @@ class ValueTypeBehavior extends Behavior
 	 * @return bool|int|string
 	 */
 	public function formatValue($value=null) {
-		/* @var ActiveRecord $ownerModel */
-		$ownerModel = $this->owner;
 		if ($value === null) {
-			$value = $ownerModel->{$this->valueAttribute};
+			$value = ArrayHelper::getValue($this->owner, $this->valueAttribute);
 		}
-		switch ($ownerModel->{$this->typeAttribute}) {
+		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+		switch ($type) {
 			case self::VALUE_TYPE_BOOLEAN:
 				return (boolean)$value;
 			case self::VALUE_TYPE_INTEGER:
@@ -118,9 +118,8 @@ class ValueTypeBehavior extends Behavior
 	public function prettifyValue($value=null, $truncateWordsCount=0)
 	{
 		$value = $this->formatValue($value);
-		/* @var ActiveRecord $ownerModel */
-		$ownerModel = $this->owner;
-		switch ($ownerModel->{$this->typeAttribute}) {
+		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+		switch ($type) {
 			case self::VALUE_TYPE_BOOLEAN:
 				return $value ? 'Да' : 'Нет';
 			case self::VALUE_TYPE_INTEGER:
@@ -150,39 +149,41 @@ class ValueTypeBehavior extends Behavior
 	 */
 	public function formField($form, $attribute, $label)
 	{
-		/* @var ActiveRecord $ownerModel */
-		$ownerModel = $this->owner;
-		switch ($ownerModel->{$this->typeAttribute}) {
-			case self::VALUE_TYPE_RICHTEXT:
-				return $form->field($ownerModel, $attribute)->widget(CKEditor::class, [
-					'editorOptions' => CKEditorHelper::defaultOptions(),
-				])->label($label);
-			case self::VALUE_TYPE_TEXT:
-				return $form->field($ownerModel, $attribute)
-					->textarea(['rows' => 6])
-					->label($label);
-			case self::VALUE_TYPE_BOOLEAN:
-				return $form->field($ownerModel, $attribute)
-					->dropDownList(['0' => 'Нет', '1' => 'Да'])
-					->label($label);
-			case self::VALUE_TYPE_FILE:
-				return $form->field($ownerModel, $attribute)->widget(InputFile::class, [
-					'language'      => 'ru',
-					'controller'    => 'elfinder', // вставляем название контроллера, по умолчанию равен elfinder
-					'template'      => '<div class="input-group">{input}<span class="input-group-btn">{button}</span></div>',
-					'options'       => ['class' => 'form-control'],
-					'buttonOptions' => ['class' => 'btn btn-default'],
-					'multiple'      => false,      // возможность выбора нескольких файлов
-				])->label($label);
-			case self::VALUE_TYPE_IMAGE:
-				return $form->field($ownerModel, $attribute)
-					->widget(InputImages::class)
-					->label($label);
-			default:
-				return $form->field($ownerModel, $attribute)
-					->textInput(['maxlength' => true])
-					->label($label);
+		if ($this->owner instanceof ActiveRecord) {
+			$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+			switch ($type) {
+				case self::VALUE_TYPE_RICHTEXT:
+					return $form->field($this->owner, $attribute)->widget(CKEditor::class, [
+						'editorOptions' => CKEditorHelper::defaultOptions(),
+					])->label($label);
+				case self::VALUE_TYPE_TEXT:
+					return $form->field($this->owner, $attribute)
+						->textarea(['rows' => 6])
+						->label($label);
+				case self::VALUE_TYPE_BOOLEAN:
+					return $form->field($this->owner, $attribute)
+						->dropDownList(['0' => 'Нет', '1' => 'Да'])
+						->label($label);
+				case self::VALUE_TYPE_FILE:
+					return $form->field($this->owner, $attribute)->widget(InputFile::class, [
+						'language' => 'ru',
+						'controller' => 'elfinder', // вставляем название контроллера, по умолчанию равен elfinder
+						'template' => '<div class="input-group">{input}<span class="input-group-btn">{button}</span></div>',
+						'options' => ['class' => 'form-control'],
+						'buttonOptions' => ['class' => 'btn btn-default'],
+						'multiple' => false,      // возможность выбора нескольких файлов
+					])->label($label);
+				case self::VALUE_TYPE_IMAGE:
+					return $form->field($this->owner, $attribute)
+						->widget(InputImages::class)
+						->label($label);
+				default:
+					return $form->field($this->owner, $attribute)
+						->textInput(['maxlength' => true])
+						->label($label);
+			}
 		}
+		return '';
 	}
 
 	/**
@@ -191,17 +192,17 @@ class ValueTypeBehavior extends Behavior
 	 */
 	public function prepareValue()
 	{
-		/* @var ActiveRecord $ownerModel */
-		$ownerModel = $this->owner;
-		if ($ownerModel->{$this->typeAttribute} == self::VALUE_TYPE_BOOLEAN) {
-			$ownerModel->{$this->valueAttribute} = (boolean)$ownerModel->{$this->valueAttribute};
-			$ownerModel->setScenario(self::VALUE_TYPE_BOOLEAN);
-		} elseif ($ownerModel->{$this->typeAttribute} == self::VALUE_TYPE_INTEGER) {
-			$ownerModel->{$this->valueAttribute} = (int)$ownerModel->{$this->valueAttribute};
-			$ownerModel->setScenario(self::VALUE_TYPE_INTEGER);
+		$value = ArrayHelper::getValue($this->owner, $this->valueAttribute);
+		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+		if ($type == self::VALUE_TYPE_BOOLEAN) {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (boolean)$value);
+			$this->owner->setScenario(self::VALUE_TYPE_BOOLEAN);
+		} elseif ($type == self::VALUE_TYPE_INTEGER) {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (int)$value);
+			$this->owner->setScenario(self::VALUE_TYPE_INTEGER);
 		} else {
-			$ownerModel->{$this->valueAttribute} = (string)$ownerModel->{$this->valueAttribute};
-			$ownerModel->setScenario(Model::SCENARIO_DEFAULT);
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (string)$value);
+			$this->owner->setScenario(Model::SCENARIO_DEFAULT);
 		}
 	}
 }
