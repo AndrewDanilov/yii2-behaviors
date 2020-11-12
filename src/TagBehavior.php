@@ -57,7 +57,12 @@ class TagBehavior extends Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		return $ownerModel->hasMany($this->tagModelClass, ['id' => $this->referenceModelTagAttribute])->via('tagRef');
+		/* @var ActiveRecord $referenceModel */
+		$referenceModel = $this->referenceModelClass;
+		// We can not use `via()` method here because it refers to links stored in owner model,
+		// and in case if we apply several tag behaviors to owner model, only first will have correct link,
+		// so we use `viaTable()` method here
+		return $ownerModel->hasMany($this->tagModelClass, ['id' => $this->referenceModelTagAttribute])->viaTable($referenceModel::tableName(), [$this->referenceModelAttribute => 'id']);
 	}
 
 	//////////////////////////////////////////////////////////////////
