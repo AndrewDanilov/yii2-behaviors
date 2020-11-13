@@ -118,22 +118,27 @@ class TagBehavior extends Behavior
 	public function updateTagIds() {
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		/* @var ActiveRecord $tagModel */
-		$tagModel = $this->tagModelClass;
+		/* @var ActiveRecord $referenceModel */
+		$referenceModel = $this->referenceModelClass;
 		// теги до изменения
 		$oldTagIds = $this->getTag()->select('id')->column();
 		// теги после изменения
 		$tagIds = $this->getTagIds();
 		// добавляем новые
 		foreach (array_filter(array_diff($tagIds, $oldTagIds)) as $tagId) {
-			if ($model = $tagModel::findOne($tagId)) {
-				$ownerModel->link('tag', $model);
+			if ($model = new $referenceModel()) {
+				$model->{$this->referenceModelAttribute} = $ownerModel->id;
+				$model->{$this->referenceModelTagAttribute} = $tagId;
+				$model->save();
 			}
 		}
 		// удаляем старые
 		foreach (array_filter(array_diff($oldTagIds, $tagIds)) as $tagId) {
-			if ($model = $tagModel::findOne($tagId)) {
-				$ownerModel->unlink('tag', $model, true);
+			if ($model = $referenceModel::find()->where([
+				$this->referenceModelAttribute => $ownerModel->id,
+				$this->referenceModelTagAttribute => $tagId
+			])->one()) {
+				$model->delete();
 			}
 		}
 	}
