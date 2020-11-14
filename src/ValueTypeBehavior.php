@@ -2,7 +2,6 @@
 namespace andrewdanilov\behaviors;
 
 use yii\base\Behavior;
-use yii\base\Model;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\helpers\StringHelper;
@@ -31,6 +30,7 @@ class ValueTypeBehavior extends Behavior
 	const VALUE_TYPE_RICHTEXT = 'richtext';
 	const VALUE_TYPE_FILE = 'file';
 	const VALUE_TYPE_IMAGE = 'image';
+	const VALUE_TYPE_ALBUM = 'album';
 
 	/**
 	 * Events list
@@ -39,13 +39,45 @@ class ValueTypeBehavior extends Behavior
 	public function events()
 	{
 		return [
-			ActiveRecord::EVENT_BEFORE_VALIDATE => 'onBeforeValidate',
+			ActiveRecord::EVENT_AFTER_FIND => 'onAfterFind',
+			ActiveRecord::EVENT_BEFORE_INSERT => 'onBeforeSave',
+			ActiveRecord::EVENT_BEFORE_UPDATE => 'onBeforeSave',
+			ActiveRecord::EVENT_AFTER_INSERT => 'onAfterSave',
+			ActiveRecord::EVENT_AFTER_UPDATE => 'onAfterSave',
 		];
 	}
 
-	public function onBeforeValidate()
+	public function onAfterFind()
 	{
-		$this->prepareValue();
+		$value = ArrayHelper::getValue($this->owner, $this->valueAttribute);
+		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+		if ($type == self::VALUE_TYPE_BOOLEAN) {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (boolean)$value);
+		} elseif ($type == self::VALUE_TYPE_INTEGER) {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (int)$value);
+		} elseif ($type == self::VALUE_TYPE_ALBUM) {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, json_decode($value, true));
+		} else {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (string)$value);
+		}
+	}
+
+	public function onBeforeSave()
+	{
+		$value = ArrayHelper::getValue($this->owner, $this->valueAttribute);
+		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+		if ($type == self::VALUE_TYPE_ALBUM) {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, json_encode((array)$value, JSON_UNESCAPED_UNICODE));
+		}
+	}
+
+	public function onAfterSave()
+	{
+		$value = ArrayHelper::getValue($this->owner, $this->valueAttribute);
+		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
+		if ($type == self::VALUE_TYPE_ALBUM) {
+			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, json_decode($value, true));
+		}
 	}
 
 	/**
@@ -63,6 +95,7 @@ class ValueTypeBehavior extends Behavior
 			self::VALUE_TYPE_RICHTEXT => 'HTML',
 			self::VALUE_TYPE_FILE => 'Файл',
 			self::VALUE_TYPE_IMAGE => 'Изображение',
+			self::VALUE_TYPE_ALBUM => 'Альбом',
 		];
 	}
 
@@ -86,7 +119,7 @@ class ValueTypeBehavior extends Behavior
 	 * Приводит значение поля любого типа к выбранному в настройках поля.
 	 *
 	 * @param $value
-	 * @return bool|int|string
+	 * @return bool|int|string|array
 	 */
 	public function formatValue($value=null) {
 		if ($value === null) {
@@ -98,6 +131,10 @@ class ValueTypeBehavior extends Behavior
 				return (boolean)$value;
 			case self::VALUE_TYPE_INTEGER:
 				return (int)$value;
+			case self::VALUE_TYPE_IMAGE:
+				return (string)$value;
+			case self::VALUE_TYPE_ALBUM:
+				return (array)$value;
 			case self::VALUE_TYPE_TEXT:
 			case self::VALUE_TYPE_RICHTEXT:
 				$value = preg_replace("/[\n\r]+/", "\n", (string)$value);
@@ -124,6 +161,16 @@ class ValueTypeBehavior extends Behavior
 				return $value ? 'Да' : 'Нет';
 			case self::VALUE_TYPE_INTEGER:
 				return $value;
+			case self::VALUE_TYPE_IMAGE:
+				return Html::img($value, ['height' => 50]);
+			case self::VALUE_TYPE_ALBUM:
+				$images = [];
+				if (!empty($value)) {
+					foreach ($value as $img) {
+						$images[] = Html::img($img, ['height' => 50]);
+					}
+				}
+				return implode('&nbsp;', $images);
 			case self::VALUE_TYPE_TEXT:
 				$value = Html::encode($value);
 				if ($truncateWordsCount) {
@@ -177,6 +224,10 @@ class ValueTypeBehavior extends Behavior
 					return $form->field($this->owner, $attribute)
 						->widget(InputImages::class)
 						->label($label);
+				case self::VALUE_TYPE_ALBUM:
+					return $form->field($this->owner, $attribute)
+						->widget(InputImages::class, ['multiple' => true])
+						->label($label);
 				default:
 					return $form->field($this->owner, $attribute)
 						->textInput(['maxlength' => true])
@@ -184,25 +235,5 @@ class ValueTypeBehavior extends Behavior
 			}
 		}
 		return '';
-	}
-
-	/**
-	 * Подготавливает значение параметра в соответствии с его типом,
-	 * а также задает сценарии валидации модели
-	 */
-	public function prepareValue()
-	{
-		$value = ArrayHelper::getValue($this->owner, $this->valueAttribute);
-		$type = ArrayHelper::getValue($this->owner, $this->typeAttribute);
-		if ($type == self::VALUE_TYPE_BOOLEAN) {
-			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (boolean)$value);
-			$this->owner->setScenario(self::VALUE_TYPE_BOOLEAN);
-		} elseif ($type == self::VALUE_TYPE_INTEGER) {
-			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (int)$value);
-			$this->owner->setScenario(self::VALUE_TYPE_INTEGER);
-		} else {
-			ObjectHelper::setObjectAttribute($this->owner, $this->valueAttribute, (string)$value);
-			$this->owner->setScenario(Model::SCENARIO_DEFAULT);
-		}
 	}
 }
