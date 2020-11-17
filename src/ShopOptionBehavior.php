@@ -47,7 +47,13 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		return $ownerModel->hasMany($this->referenceModelClass, [$this->referenceModelAttribute => 'id']);
+		/* @var ActiveRecord $ownerModel */
+		$referenceModel = $this->referenceModelClass;
+		$optionsRefs = $ownerModel->hasMany($this->referenceModelClass, [$this->referenceModelAttribute => 'id']);
+		if (!empty($this->optionsFilter)) {
+			$optionsRefs->where([$referenceModel::tableName() . '.' . $this->referenceModelOptionAttribute => $this->optionsFilter]);
+		}
+		return $optionsRefs;
 	}
 
 	/**
@@ -59,7 +65,18 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		return $ownerModel->hasMany($this->optionModelClass, ['id' => $this->referenceModelOptionAttribute])->via('optionsRef');
+		/* @var ActiveRecord $optionModel */
+		$optionModel = $this->optionModelClass;
+		/* @var ActiveRecord $referenceModel */
+		$referenceModel = $this->referenceModelClass;
+		// We can not use `via()` method here because it refers to links stored in owner model,
+		// and in case if we apply several tag behaviors to owner model, only first will have correct link,
+		// so we use `viaTable()` method here
+		$options = $ownerModel->hasMany($optionModel, ['id' => $this->referenceModelOptionAttribute])->viaTable($referenceModel::tableName(), [$this->referenceModelAttribute => 'id']);
+		if (!empty($this->optionsFilter)) {
+			$options->where([$optionModel::tableName() . '.id' => $this->optionsFilter]);
+		}
+		return $options;
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -90,7 +107,7 @@ class ShopOptionBehavior extends \yii\base\Behavior
 			/* @var ActiveQuery $options */
 			$options = $optionModel::find()->indexBy('id');
 			if (!empty($this->optionsFilter)) {
-				$options->where(['id' => $this->optionsFilter]);
+				$options->where([$optionModel::tableName() . '.id' => $this->optionsFilter]);
 			}
 			// первичный массив опций
 			$this->_options = [];
@@ -102,9 +119,6 @@ class ShopOptionBehavior extends \yii\base\Behavior
 			}
 			// заполним данными из базы
 			$optionsRefs = $this->getOptionsRef();
-			if (!empty($this->optionsFilter)) {
-				$optionsRefs->where([$this->referenceModelOptionAttribute => $this->optionsFilter]);
-			}
 			foreach ($optionsRefs->all() as $optionRef) {
 				$this->_options[$optionRef->{$this->referenceModelOptionAttribute}]['items'][] = $optionRef;
 			}

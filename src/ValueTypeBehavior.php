@@ -1,6 +1,7 @@
 <?php
 namespace andrewdanilov\behaviors;
 
+use Yii;
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;
@@ -16,12 +17,16 @@ use andrewdanilov\InputImages\InputImages;
 /**
  * ValueTypeBehavior
  *
+ * @property string $typeAttribute
+ * @property string $valueAttribute
+ * @property string $fileController
  * @property string $typeName
  */
 class ValueTypeBehavior extends Behavior
 {
 	public $typeAttribute = 'type';
 	public $valueAttribute = 'value';
+	public $fileController;
 
 	const VALUE_TYPE_STRING = 'string';
 	const VALUE_TYPE_INTEGER = 'integer';
@@ -31,6 +36,18 @@ class ValueTypeBehavior extends Behavior
 	const VALUE_TYPE_FILE = 'file';
 	const VALUE_TYPE_IMAGE = 'image';
 	const VALUE_TYPE_ALBUM = 'album';
+
+	public function init()
+	{
+		if (empty($this->fileController)) {
+			$this->fileController = 'elfinder';
+			$module = Yii::$app->controller->module;
+			if ($module !== null) {
+				$this->fileController = $module->id . '/' . $this->fileController;
+			}
+		}
+		parent::init();
+	}
 
 	/**
 	 * Events list
@@ -214,7 +231,7 @@ class ValueTypeBehavior extends Behavior
 				case self::VALUE_TYPE_FILE:
 					return $form->field($this->owner, $attribute)->widget(InputFile::class, [
 						'language' => 'ru',
-						'controller' => 'elfinder', // вставляем название контроллера, по умолчанию равен elfinder
+						'controller' => $this->fileController,
 						'template' => '<div class="input-group">{input}<span class="input-group-btn">{button}</span></div>',
 						'options' => ['class' => 'form-control'],
 						'buttonOptions' => ['class' => 'btn btn-default'],
@@ -222,12 +239,15 @@ class ValueTypeBehavior extends Behavior
 					])->label($label);
 				case self::VALUE_TYPE_IMAGE:
 					return $form->field($this->owner, $attribute)
-						->widget(InputImages::class)
-						->label($label);
+						->widget(InputImages::class, [
+							'controller' => $this->fileController,
+						])->label($label);
 				case self::VALUE_TYPE_ALBUM:
 					return $form->field($this->owner, $attribute)
-						->widget(InputImages::class, ['multiple' => true])
-						->label($label);
+						->widget(InputImages::class, [
+							'controller' => $this->fileController,
+							'multiple' => true,
+						])->label($label);
 				default:
 					return $form->field($this->owner, $attribute)
 						->textInput(['maxlength' => true])
