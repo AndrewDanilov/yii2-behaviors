@@ -19,6 +19,8 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	public $referenceModelAttribute = 'product_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ исходной модели
 	public $referenceModelOptionAttribute = 'option_id'; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели опций
 	public $optionModelClass; // класс модели опций, например, 'common\models\ShopOption'
+	public $optionModelOrderAttribute = 'id'; // атрибут модели опций, по которому выполняется сортировка
+	public $optionModelOrder = SORT_ASC; // направление сортировки SORT_ASC|SORT_DESC
 	public $optionsFilter = []; // ID опций, доступных для исходной модели
 	public $createDefaultValues = false; // при инициализации создает по одному пустому значению для каждой опции, если опция не имеет значений
 
@@ -49,10 +51,14 @@ class ShopOptionBehavior extends \yii\base\Behavior
 		$ownerModel = $this->owner;
 		/* @var ActiveRecord $ownerModel */
 		$referenceModel = $this->referenceModelClass;
+		/* @var ActiveRecord $optionModel */
+		$optionModel = $this->optionModelClass;
 		$optionsRefs = $ownerModel->hasMany($this->referenceModelClass, [$this->referenceModelAttribute => 'id']);
 		if (!empty($this->optionsFilter)) {
 			$optionsRefs->where([$referenceModel::tableName() . '.' . $this->referenceModelOptionAttribute => $this->optionsFilter]);
 		}
+		$optionsRefs->innerJoin($optionModel::tableName(), $optionModel::tableName() . '.id = ' . $referenceModel::tableName() . '.' . $this->referenceModelOptionAttribute);
+		$optionsRefs->orderBy([$optionModel::tableName() . '.' . $this->optionModelOrderAttribute => $this->optionModelOrder]);
 		return $optionsRefs;
 	}
 
@@ -76,6 +82,7 @@ class ShopOptionBehavior extends \yii\base\Behavior
 		if (!empty($this->optionsFilter)) {
 			$options->where([$optionModel::tableName() . '.id' => $this->optionsFilter]);
 		}
+		$options->orderBy([$optionModel::tableName() . '.' . $this->optionModelOrderAttribute => $this->optionModelOrder]);
 		return $options;
 	}
 
@@ -104,8 +111,8 @@ class ShopOptionBehavior extends \yii\base\Behavior
 		if ($this->_options === null) {
 			/* @var ActiveRecord $optionModel */
 			$optionModel = $this->optionModelClass;
-			/* @var ActiveQuery $options */
 			$options = $optionModel::find()->indexBy('id');
+			$options->orderBy([$optionModel::tableName() . '.' . $this->optionModelOrderAttribute => $this->optionModelOrder]);
 			if (!empty($this->optionsFilter)) {
 				$options->where([$optionModel::tableName() . '.id' => $this->optionsFilter]);
 			}
