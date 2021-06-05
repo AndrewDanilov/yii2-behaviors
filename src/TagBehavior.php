@@ -20,6 +20,24 @@ class TagBehavior extends Behavior
 	public $referenceModelTagAttribute; // атрибут промежуточной таблицы, ссылающийся на первичный ключ модели тегов, например, 'tag_id'
 	public $tagModelClass; // класс модели тегов, например, 'common\models\Tag'
 
+	/**
+	 * $ownerModelIdsAttribute - Атрибут исходной модели для сохранения массива ID тегов,
+	 * которые связаны с этой моделью. Этот атрибут можно использовать в качестве поля
+	 * формы ActiveForm, хранящего список связаных значений. Указанный атрибут в исходной
+	 * модели должен существовать и быть публичным свойством.
+	 *
+	 * Если $ownerModelIdsAttribute не задан - то для хранения списка будет использоваться
+	 * приватное свойство поведения $this->_tagIds, читать/изменять список можно будет
+	 * с помощью магического свойства $model->tagIds, а в качестве поля формы можно
+	 * будет указывать 'tagIds'.
+	 *
+	 * Если $ownerModelIdsAttribute не задан и к модели привязано несколько поведений TagBehavior,
+	 * то для получения/изменения списка ID тегов, можно воспользоваться доступом к поведению:
+	 * $model->getBehavior('behavior_name')->getTagIds();
+	 * $model->getBehavior('behavior_name')->setTagIds([...]);
+	 */
+	public $ownerModelIdsAttribute;
+
 	private $_tagIds;
 
 	/**
@@ -29,6 +47,7 @@ class TagBehavior extends Behavior
 	public function events()
 	{
 		return [
+			ActiveRecord::EVENT_AFTER_FIND => 'onAfterFind',
 			ActiveRecord::EVENT_BEFORE_VALIDATE => 'onBeforeValidate',
 			ActiveRecord::EVENT_AFTER_INSERT => 'onAfterSave',
 			ActiveRecord::EVENT_AFTER_UPDATE => 'onAfterSave',
@@ -68,7 +87,19 @@ class TagBehavior extends Behavior
 	//////////////////////////////////////////////////////////////////
 
 	/**
-	 * Заполняет модель данными по тегам
+	 * Заполняет исходную модель данными по тегам после ее выборки из базы
+	 */
+	public function onAfterFind()
+	{
+		if ($this->ownerModelIdsAttribute !== null) {
+			/* @var ActiveRecord $ownerModel */
+			$ownerModel = $this->owner;
+			$ownerModel->{$this->ownerModelIdsAttribute} = $this->getTag()->select('id')->column();
+		}
+	}
+
+	/**
+	 * Заполняет модель данными по тегам перед ее валидацией
 	 */
 	public function onBeforeValidate()
 	{
@@ -76,8 +107,8 @@ class TagBehavior extends Behavior
 		$ownerModel = $this->owner;
 		if (Yii::$app->request->isPost) {
 			$form = Yii::$app->request->post($ownerModel->formName());
-			if (!empty($form['tagIds'])) {
-				$this->setTagIds($form['tagIds']);
+			if (!empty($form[$this->ownerModelIdsAttribute])) {
+				$this->setTagIds($form[$this->ownerModelIdsAttribute]);
 			}
 		}
 	}
@@ -104,15 +135,30 @@ class TagBehavior extends Behavior
 
 	public function getTagIds()
 	{
-		if ($this->_tagIds === null) {
-			$this->_tagIds = $this->getTag()->select('id')->column();
+		if ($this->ownerModelIdsAttribute !== null) {
+			/* @var ActiveRecord $ownerModel */
+			$ownerModel = $this->owner;
+			if ($ownerModel->{$this->ownerModelIdsAttribute} === null) {
+				$ownerModel->{$this->ownerModelIdsAttribute} = $this->getTag()->select('id')->column();
+			}
+			return $ownerModel->{$this->ownerModelIdsAttribute};
+		} else {
+			if ($this->_tagIds === null) {
+				$this->_tagIds = $this->getTag()->select('id')->column();
+			}
+			return $this->_tagIds;
 		}
-		return $this->_tagIds;
 	}
 
 	public function setTagIds($ids)
 	{
-		return $this->_tagIds = (array)$ids;
+		if ($this->ownerModelIdsAttribute !== null) {
+			/* @var ActiveRecord $ownerModel */
+			$ownerModel = $this->owner;
+			$ownerModel->{$this->ownerModelIdsAttribute} = (array)$ids;
+		} else {
+			$this->_tagIds = (array)$ids;
+		}
 	}
 
 	public function updateTagIds() {
