@@ -83,3 +83,123 @@ $config = [
 ```
 
 If you have problems with time shifting, set `defaultTimeZone` property of formatter.
+
+
+TagBehavior
+-----
+
+Use this behavior to link two models with many-to-many relation via staging table. This behavior will take care of saving new links to staging table and removing obsolete ones.
+
+Model `Product.php`
+
+```php
+<?php
+namespace common\models;
+
+use yii\db\ActiveRecord;
+
+/**
+ * Class Product
+ *
+ * @property int $id
+ * ...
+ * @property int[] $category_ids
+ */
+class Product extends ActiveRecord
+{
+	public $category_ids;
+
+	public function behaviors()
+	{
+		return [
+			[
+				'class' => 'andrewdanilov\behaviors\TagBehavior',
+				'referenceModelClass' => 'common\models\ProductCategory',
+				'referenceModelAttribute' => 'product_id',
+				'referenceModelTagAttribute' => 'category_id',
+				'tagModelClass' => 'common\models\Category',
+				'ownerModelIdsAttribute' => 'category_ids',
+			]
+		];
+	}
+	
+	// ...
+}
+```
+
+Model `Category.php`
+
+```php
+<?php
+namespace common\models;
+
+use yii\db\ActiveRecord;
+
+/**
+ * Class Category
+ *
+ * @property int $id
+ * @property string $name
+ * ...
+ */
+class Category extends ActiveRecord
+{
+	// ...
+}
+```
+
+
+Model `ProductCategory.php`
+
+```php
+<?php
+namespace common\models;
+
+use yii\db\ActiveRecord;
+
+/**
+ * Class ProductCategory
+ *
+ * @property int $id
+ * @property int $product_id
+ * @property int $category_id
+ */
+class ProductCategory extends ActiveRecord
+{
+	// ...
+}
+```
+
+
+View `product/update.php`
+
+```php
+<?php
+
+use andrewdanilov\behaviors\TagBehavior;
+use common\models\Category;
+use common\models\Product;
+use yii\helpers\Html;
+use yii\bootstrap\ActiveForm;
+
+/* @var $this yii\web\View */
+/* @var $form yii\widgets\ActiveForm */
+/* @var $model Product|TagBehavior */
+?>
+
+<?php $form = ActiveForm::begin(); ?>
+
+...
+
+<?= $form->field($model, 'category_ids')->checkboxList(Category::find()->select(['name', 'id'])->indexBy('id')->column(), ['prompt' => '']) ?>
+
+...
+
+<div class="form-group">
+    <?= Html::submitButton('Save', ['class' => 'btn btn-success']) ?>
+</div>
+
+<?php ActiveForm::end(); ?>
+```
+
+TagBehavior can be used several times in one model, so you can add at the same time categories, tags and linked products to your `Product` model
