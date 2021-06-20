@@ -96,8 +96,6 @@ Model `Product.php`
 <?php
 namespace common\models;
 
-use yii\db\ActiveRecord;
-
 /**
  * Class Product
  *
@@ -105,14 +103,14 @@ use yii\db\ActiveRecord;
  * ...
  * @property int[] $category_ids
  */
-class Product extends ActiveRecord
+class Product extends \yii\db\ActiveRecord
 {
 	public $category_ids;
 
 	public function behaviors()
 	{
 		return [
-			[
+			'category' => [ // name of behavior
 				'class' => 'andrewdanilov\behaviors\TagBehavior',
 				'referenceModelClass' => 'common\models\ProductCategory',
 				'referenceModelAttribute' => 'product_id',
@@ -121,6 +119,22 @@ class Product extends ActiveRecord
 				'ownerModelIdsAttribute' => 'category_ids',
 			]
 		];
+	}
+	
+	/**
+     * Getter for retrieving child models (tags) list.
+     * It can be used therefore as property $product->categories
+     * or link named 'categories', i.e. $product->with('categories')
+     * 
+	 * @return \yii\db\ActiveQuery
+	 */
+	public function getCategories()
+	{
+		$behavior = $this->getBehavior('category'); // use name of behavior here ('category')
+		if ($behavior instanceof \andrewdanilov\behaviors\TagBehavior) {
+			return $behavior->getTags();
+		}
+		return null;
 	}
 	
 	// ...

@@ -5,6 +5,7 @@ use Yii;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
 use yii\base\Behavior;
+use yii\helpers\ArrayHelper;
 
 /**
  * TagBehavior class
@@ -59,8 +60,19 @@ class TagBehavior extends Behavior
 	 * Связь с таблицей связей объекта и тегов
 	 *
 	 * @return ActiveQuery
+	 * @deprecated
 	 */
 	public function getTagRef()
+	{
+		return $this->getTagsRef();
+	}
+
+	/**
+	 * Связь с таблицей связей объекта и тегов
+	 *
+	 * @return ActiveQuery
+	 */
+	public function getTagsRef()
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
@@ -71,8 +83,19 @@ class TagBehavior extends Behavior
 	 * Связь с тегами объекта
 	 *
 	 * @return ActiveQuery
+	 * @deprecated
 	 */
 	public function getTag()
+	{
+		return $this->getTags();
+	}
+
+	/**
+	 * Связь с тегами объекта
+	 *
+	 * @return ActiveQuery
+	 */
+	public function getTags()
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
@@ -94,7 +117,7 @@ class TagBehavior extends Behavior
 		if ($this->ownerModelIdsAttribute !== null) {
 			/* @var ActiveRecord $ownerModel */
 			$ownerModel = $this->owner;
-			$ownerModel->{$this->ownerModelIdsAttribute} = $this->getTag()->select('id')->column();
+			$ownerModel->{$this->ownerModelIdsAttribute} = $this->getTags()->select('id')->column();
 		}
 	}
 
@@ -112,9 +135,7 @@ class TagBehavior extends Behavior
 			} else {
 				$idsAttribute = 'tagIds';
 			}
-			if (!empty($form[$idsAttribute])) {
-				$this->setTagIds($form[$idsAttribute]);
-			}
+			$this->setTagIds(ArrayHelper::getValue($form, $idsAttribute));
 		}
 	}
 
@@ -131,9 +152,13 @@ class TagBehavior extends Behavior
 	 */
 	public function onBeforeDelete()
 	{
-		/* @var ActiveRecord $ownerModel */
-		$ownerModel = $this->owner;
-		$ownerModel->unlinkAll('tag', true);
+		// We can not use `unlinkAll()` method here because it refers to links stored in owner model,
+		// and in case if we apply several tag behaviors to owner model, only first will have correct link,
+		// so we use `getTagRef()` method with deleting each link record by `delete()` method of ActiveRecord
+		$refs = $this->getTagsRef()->all();
+		foreach ($refs as $ref) {
+			$ref->delete();
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -144,12 +169,12 @@ class TagBehavior extends Behavior
 			/* @var ActiveRecord $ownerModel */
 			$ownerModel = $this->owner;
 			if ($ownerModel->{$this->ownerModelIdsAttribute} === null) {
-				$ownerModel->{$this->ownerModelIdsAttribute} = $this->getTag()->select('id')->column();
+				$ownerModel->{$this->ownerModelIdsAttribute} = $this->getTags()->select('id')->column();
 			}
 			return $ownerModel->{$this->ownerModelIdsAttribute};
 		} else {
 			if ($this->_tagIds === null) {
-				$this->_tagIds = $this->getTag()->select('id')->column();
+				$this->_tagIds = $this->getTags()->select('id')->column();
 			}
 			return $this->_tagIds;
 		}
@@ -172,7 +197,7 @@ class TagBehavior extends Behavior
 		/* @var ActiveRecord $referenceModel */
 		$referenceModel = $this->referenceModelClass;
 		// теги до изменения
-		$oldTagIds = $this->getTag()->select('id')->column();
+		$oldTagIds = $this->getTags()->select('id')->column();
 		// теги после изменения
 		$tagIds = $this->getTagIds();
 		// добавляем новые
