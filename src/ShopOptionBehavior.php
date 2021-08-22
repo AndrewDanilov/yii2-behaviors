@@ -49,7 +49,7 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	{
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
-		/* @var ActiveRecord $ownerModel */
+		/* @var ActiveRecord $referenceModel */
 		$referenceModel = $this->referenceModelClass;
 		/* @var ActiveRecord $optionModel */
 		$optionModel = $this->optionModelClass;
@@ -76,9 +76,9 @@ class ShopOptionBehavior extends \yii\base\Behavior
 		/* @var ActiveRecord $referenceModel */
 		$referenceModel = $this->referenceModelClass;
 		// We can not use `via()` method here because it refers to links stored in owner model,
-		// and in case if we apply several tag behaviors to owner model, only first will have correct link,
+		// and in case if we apply several option behaviors to owner model, only first will have correct link,
 		// so we use `viaTable()` method here
-		$options = $ownerModel->hasMany($optionModel, ['id' => $this->referenceModelOptionAttribute])->viaTable($referenceModel::tableName(), [$this->referenceModelAttribute => 'id']);
+		$options = $ownerModel->hasMany($this->optionModelClass, ['id' => $this->referenceModelOptionAttribute])->viaTable($referenceModel::tableName(), [$this->referenceModelAttribute => 'id']);
 		if (!empty($this->optionsFilter)) {
 			$options->where([$optionModel::tableName() . '.id' => $this->optionsFilter]);
 		}
@@ -112,7 +112,9 @@ class ShopOptionBehavior extends \yii\base\Behavior
 			/* @var ActiveRecord $optionModel */
 			$optionModel = $this->optionModelClass;
 			$options = $optionModel::find()->indexBy('id');
-			$options->orderBy([$optionModel::tableName() . '.' . $this->optionModelOrderAttribute => $this->optionModelOrder]);
+			$options->orderBy([
+				$optionModel::tableName() . '.' . $this->optionModelOrderAttribute => $this->optionModelOrder,
+			]);
 			if (!empty($this->optionsFilter)) {
 				$options->where([$optionModel::tableName() . '.id' => $this->optionsFilter]);
 			}
@@ -167,7 +169,7 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	//////////////////////////////////////////////////////////////////
 
 	/**
-	 * Удаляет все связанные с моделью опции
+	 * Удаляет все связанные с исходной моделью опции
 	 */
 	public function onBeforeDelete()
 	{
@@ -181,21 +183,30 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	{
 		$formName = $this->getFormName($this->referenceModelClass);
 		$data = Yii::$app->request->post($formName, []);
-		// удаляем все прежние связи с опциями
-		$this->deleteOptions();
-		// формируем новые связи
-		$pk = 'id';
-		foreach ($data as $option_id => $optionsRefs) {
-			foreach ($optionsRefs as $optionsRef) {
-				/* @var ActiveRecord $model */
-				$model = new $this->referenceModelClass([$this->referenceModelOptionAttribute => $option_id]);
-				$model->load($optionsRef, '');
-				$model->{$this->referenceModelAttribute} = $this->owner->$pk;
-				// перед сохранением подменим данные формы, чтобы вложенные
-				// в модель поведения смогли их подхватить как свои
-				$_POST[$formName] = $optionsRef;
-				Yii::$app->request->setBodyParams($_POST);
-				$model->save();
+		if (!empty($data)) {
+			// удаляем все прежние связи с опциями
+			$this->deleteOptions();
+			// формируем новые связи
+			foreach ($data as $option_id => $optionsRefs) {
+				// разрешаем сохранять только опции перечисленные в $this->optionsFilter
+				// если список разрешенных опций $this->optionsFilter не пустой,
+				// иначе разрешаем сохранять любые опции
+				if (!$this->optionsFilter || in_array($option_id, $this->optionsFilter)) {
+					foreach ($optionsRefs as $optionsRef) {
+						// разрешаем сохранять только опции с непустым значением
+						if (!empty($optionsRef['value'])) {
+							/* @var ActiveRecord $model */
+							$model = new $this->referenceModelClass([$this->referenceModelOptionAttribute => $option_id]);
+							$model->load($optionsRef, '');
+							$model->{$this->referenceModelAttribute} = $this->owner->id;
+							// перед сохранением подменим данные формы, чтобы вложенные
+							// в модель поведения смогли их подхватить как свои
+							$_POST[$formName] = $optionsRef;
+							Yii::$app->request->setBodyParams($_POST);
+							$model->save();
+						}
+					}
+				}
 			}
 		}
 	}
@@ -207,7 +218,11 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	 */
 	public function deleteOptions()
 	{
-		foreach ($this->getOptionsRef()->all() as $optionsRef) {
+		/* @var ActiveRecord $ownerModel */
+		$ownerModel = $this->owner;
+		// все записи из промежуточной таблицы связей исходной модели с опциями
+		$optionsRefs = $ownerModel->hasMany($this->referenceModelClass, [$this->referenceModelAttribute => 'id']);
+		foreach ($optionsRefs->all() as $optionsRef) {
 			$optionsRef->delete();
 		}
 	}
