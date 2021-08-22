@@ -29,7 +29,6 @@ class ImagesBehavior extends Behavior
 	public function events()
 	{
 		return [
-			ActiveRecord::EVENT_BEFORE_VALIDATE => 'onBeforeValidate',
 			ActiveRecord::EVENT_AFTER_INSERT => 'onAfterSave',
 			ActiveRecord::EVENT_AFTER_UPDATE => 'onAfterSave',
 			ActiveRecord::EVENT_BEFORE_DELETE => 'onBeforeDelete',
@@ -73,19 +72,6 @@ class ImagesBehavior extends Behavior
 	//////////////////////////////////////////////////////////////////
 
 	/**
-	 * Заполняет модель переданными при сохранении изображениями
-	 */
-	public function onBeforeValidate()
-	{
-		/* @var ActiveRecord $ownerModel */
-		$ownerModel = $this->owner;
-		$form = Yii::$app->request->post($ownerModel->formName());
-		if (isset($form['images'])) {
-			$this->setImages($form['images']);
-		}
-	}
-
-	/**
 	 * Сохраняет изображения для текущей модели
 	 */
 	public function onAfterSave()
@@ -95,19 +81,23 @@ class ImagesBehavior extends Behavior
 		/* @var ActiveRecord $ownerModel */
 		$ownerModel = $this->owner;
 
-		// удаляем старые изображения
-		$ownerModel->unlinkAll('imagesRef', true);
+		$form = Yii::$app->request->post($ownerModel->formName());
+		if (!empty($form)) {
+			// удаляем старые изображения
+			$ownerModel->unlinkAll('imagesRef', true);
 
-		// добавляем новые изображения
-		$n = 1;
-		$pk = 'id';
-		foreach ($this->getImages() as $image) {
-			/* @var $model ActiveRecord */
-			$model = new $imagesModel();
-			$model->{$this->imagesModelRefAttribute} = $ownerModel->{$pk};
-			$model->{$this->imagesModelImageAttribute} = $image;
-			$model->{$this->imagesModelOrderAttribute} = $n++;
-			$model->save();
+			if (!empty($form['images'])) {
+				// добавляем новые изображения
+				$n = 1;
+				foreach ($form['images'] as $image) {
+					/* @var $model ActiveRecord */
+					$model = new $imagesModel();
+					$model->{$this->imagesModelRefAttribute} = $ownerModel->id;
+					$model->{$this->imagesModelImageAttribute} = $image;
+					$model->{$this->imagesModelOrderAttribute} = $n++;
+					$model->save();
+				}
+			}
 		}
 	}
 
