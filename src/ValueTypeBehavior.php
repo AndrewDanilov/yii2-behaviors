@@ -7,6 +7,7 @@ use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\helpers\StringHelper;
 use yii\helpers\ArrayHelper;
+use yii\widgets\ActiveField;
 use yii\widgets\ActiveForm;
 use mihaildev\elfinder\InputFile;
 use andrewdanilov\ckeditor\CKEditor;
@@ -208,7 +209,7 @@ class ValueTypeBehavior extends Behavior
 	 * @param ActiveForm $form
 	 * @param string $attribute
 	 * @param string $label
-	 * @return string
+	 * @return ActiveField
 	 */
 	public function formField($form, $attribute, $label)
 	{
