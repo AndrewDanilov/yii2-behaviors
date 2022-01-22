@@ -41,9 +41,8 @@ class ValueTypeBehavior extends Behavior
 	{
 		if (empty($this->fileController)) {
 			$this->fileController = 'elfinder';
-			$module = Yii::$app->controller->module;
-			if ($module !== null) {
-				$this->fileController = $module->id . '/' . $this->fileController;
+			if (isset(Yii::$app->controller->module)) {
+				$this->fileController = Yii::$app->controller->module->id . '/' . $this->fileController;
 			}
 		}
 		parent::init();
