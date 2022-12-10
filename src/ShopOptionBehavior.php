@@ -183,9 +183,9 @@ class ShopOptionBehavior extends \yii\base\Behavior
 	{
 		$formName = $this->getFormName($this->referenceModelClass);
 		$data = Yii::$app->request->post($formName, []);
+        // удаляем все прежние связи с опциями
+        $this->deleteOptions();
 		if (!empty($data)) {
-			// удаляем все прежние связи с опциями
-			$this->deleteOptions();
 			// формируем новые связи
 			foreach ($data as $option_id => $optionsRefs) {
 				// разрешаем сохранять только опции перечисленные в $this->optionsFilter
