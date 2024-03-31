@@ -11,7 +11,7 @@
         }
     ],
     "require": {
-        "php": ">=5.6.0",
+        "php": ">=7.4.0",
         "yiisoft/yii2": "^2.0.0",
         "mihaildev/yii2-elfinder": "*@dev",
         "andrewdanilov/yii2-ckeditor": "~1.0.1",
