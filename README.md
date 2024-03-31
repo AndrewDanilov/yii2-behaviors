@@ -217,3 +217,49 @@ use yii\bootstrap\ActiveForm;
 ```
 
 TagBehavior can be used several times in one model, so you can add at the same time categories, tags and linked products to your `Product` model
+
+
+JsonTypecastBehavior
+-----
+
+Use this behavior to convert database field values saved in json-string format into array and back.
+This allows you to store a value in the database as a json string, but treat it as if it were an array.
+
+```php
+use andrewdanilov\behaviors\JsonTypecastBehavior;
+
+class Item extends \yii\db\ActiveRecord
+{
+    public function behaviors()
+    {
+        return [
+            'jsontypecast' => [
+                'class' => JsonTypecastBehavior::class,
+                'attributes' => [
+                    'json_field_1', // field names
+                    'json_field_2',
+                    'json_field_3',
+                    // ...
+                ],
+            ],
+        ];
+    }
+    // ...
+}
+
+// Use example:
+$item = new Item();
+$item->json_field_1 = [1, 2, 3];
+// before saving json_field_1 will be converted to a json string
+$item->save();
+// then after saving it will be converted back to an array
+print_r($item->json_field_1);
+
+// Outputs:
+// Array
+// (
+//   [0] => 1
+//   [1] => 2
+//   [2] => 3
+// )
+```
