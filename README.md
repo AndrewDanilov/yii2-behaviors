@@ -263,3 +263,35 @@ print_r($item->json_field_1);
 //   [2] => 3
 // )
 ```
+
+RateLimitBehavior
+-----
+
+Use this behavior to limit rate of requests from your visitors to specific controller actions.
+
+```php
+<?php
+class MyController extends \yii\web\Controller
+{
+    public function behaviors(): array
+    {
+        return array_merge(parent::behaviors(), [
+            'rateLimit' => [
+                'class' => \andrewdanilov\behaviors\RateLimitBehavior::class,
+                // identityKey - key to identify current visitor, optional
+                'identityKey' => Yii::$app->user->id ?? Yii::$app->session->getId(),
+                'limits' => [
+                    // '<action>' => [<interval>, <rate>]
+                    // <action>   - идентификатор действия
+                    // <interval> - интервал, на котором проводим измерения
+                    // <rate>     - доступное число запросов на указанном интервале
+                    'index'  => [1, 100], // 100 раз в секунду
+                    'view'   => 10,       // 10 раз в секунду (сокращенная запись)
+                    'create' => [60, 1],  // 1 раз в минуту
+                    'update' => [1, 1],   // 1 раз в секунду
+                ],
+            ],
+        ]);
+    }
+}
+```
