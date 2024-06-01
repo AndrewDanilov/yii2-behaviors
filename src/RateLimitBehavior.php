@@ -87,14 +87,21 @@ class RateLimitBehavior extends Behavior
         }
     }
 
-    public function getActionStartedAt($action)
+    /**
+     * @param string $action
+     * @return float|null
+     */
+    public function getActionStartedAt(string $action)
     {
         $cacheKey = $this->getCacheKey($action);
 
-        return Yii::$app->cache->get($cacheKey);
+        return Yii::$app->cache->get($cacheKey) ?: null;
     }
 
-    public function setActionStartedAt($action)
+    /**
+     * @param $action
+     */
+    public function setActionStartedAt(string $action)
     {
         $cacheKey = $this->getCacheKey($action);
         $now = microtime(true);
